@@ -52,6 +52,17 @@ flowchart LR
 
 ### 11.4 データベース・ストレージ・開発環境
 - PostgreSQL 16(`docker-compose.yml` でローカル起動。イメージ `postgres:16`)。他アプリの DB と同時に起動できるよう、ホスト側ポートは 5434 を使う。拡張機能 `pg_trgm` は Prisma のマイグレーション SQL で有効にする。
-- 画像ストレージ: ローカルは S3 互換の RustFS(`rustfs/rustfs:1.0.1`)。本番は S3 互換のストレージ([要確認ポイント](09-open-questions.md) Q-06)。アプリのコードは共通で、接続先の設定だけ切り替える。
+- 画像ストレージ: ローカルは S3 互換の RustFS(`rustfs/rustfs:1.0.1`)。本番は Supabase Storage(S3 互換 API)。アプリのコードは共通で、接続先の設定だけ切り替える。
 - 画像アップロードは Server Actions で受け取るため、`next.config` の `serverActions.bodySizeLimit` を写真の上限(5MB)より少し大きい値にする。
 - CI: GitHub Actions(型チェック `tsc --noEmit`、ESLint、Vitest、ビルド)。E2E テストは手元で実行する。
+
+### 11.5 本番環境(デモ環境)
+| 役割 | サービス | プラン |
+|---|---|---|
+| アプリ(Next.js) | Vercel | Hobby(無料) |
+| データベース(PostgreSQL) | Supabase | Free |
+| 写真の保存 | Supabase Storage(S3 互換 API) | Free |
+
+- DB と写真の保存先を Supabase 1つにまとめ、アカウントを増やさない。写真は S3 互換 API で扱うので、ローカル(RustFS)とアプリのコードは共通にできる。
+- Vercel・Supabase とも GitHub アカウントでログインして使う。秘密情報は Vercel の環境変数に設定する。
+- 注意: Supabase の無料プロジェクトは、1週間アクセスがないと一時停止する。発表の前日に開いて動作を確認する。
