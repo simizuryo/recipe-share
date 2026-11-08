@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    name: Typecheck / Lint / Test / Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # ビルドは DB に接続しない(DB を使う処理はリクエスト時にだけ動く)。値は形式だけ合わせたダミー
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      BETTER_AUTH_SECRET: ci-dummy-secret-at-least-32-characters-long
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # postinstall で prisma generate が動く
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

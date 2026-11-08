@@ -10,3 +10,4 @@
 |---|---|---|
 | 2026-11-08 | 初版作成 | スクール課題の開発開始のため |
 | 2026-11-08 | 技術スタックを React + Spring Boot から Next.js(TypeScript)のフルスタック構成に変更。認証は Better Auth、DB アクセスは Prisma、更新処理は Server Actions とし、非機能要件・スケジュール・要確認ポイントを合わせて更新 | 前回の SNS アプリとは別の技術を学ぶため(オーナー決定) |
+| 2026-11-08 | 環境構築に合わせてデータモデル(03)と技術スタック(05)を更新。ID は integer の連番、パスワードは Better Auth の accounts テーブルに保存、カテゴリは enum 型。認証用テーブル(sessions / accounts / verifications / rate_limits)を追記。型チェックの方法・Cache Components の注意・追加パッケージを追記 | 実際のスキーマと設定に合わせるため |

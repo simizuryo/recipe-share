@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: recipe-share-postgres
+    environment:
+      POSTGRES_DB: recipe_share
+      POSTGRES_USER: recipe
+      POSTGRES_PASSWORD: recipe
+    ports:
+      # trello-clone(5432)・sns-timeline-app(5433)の PostgreSQL と同時に起動できるよう、ホスト側は 5434 にする
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recipe -d recipe_share"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # 完成写真(F-09)の保存先。本番は Supabase Storage(S3 互換 API)、ローカルは S3 互換の RustFS を使う。
+  # アプリのコードは共通で、接続先の設定(.env の S3_*)だけ切り替える。
+  storage:
+    image: rustfs/rustfs:1.0.1
+    container_name: recipe-share-storage
+    command: ["/data"]
+    environment:
+      RUSTFS_ACCESS_KEY: recipe-dev
+      RUSTFS_SECRET_KEY: recipe-dev-secret
+    ports:
+      # sns-timeline-app の RustFS(9100)と同時に起動できるよう、ホスト側は 9200 にする
+      - "9200:9000"
+    volumes:
+      - storagedata:/data
+
+volumes:
+  pgdata:
+  storagedata:
