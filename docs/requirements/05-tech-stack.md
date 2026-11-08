@@ -2,48 +2,51 @@
 
 ## 11. 技術スタック
 
-これまでのアプリ(trello-clone / sns-timeline-app)と同じ構成・バージョンにそろえる。
+これまでのアプリ(React + Spring Boot)とは別の技術を学ぶため、**Next.js(TypeScript)のフルスタック構成**にする。
+画面とサーバー処理を1つの Next.js プロジェクトに TypeScript で書く。
 バージョンを変える場合は、[変更管理](08-change-management.md) に記録する。
 
 ### 11.1 全体構成
 ```mermaid
 flowchart LR
-    B[ブラウザ<br/>React SPA] -- "JSON API (/api/...)<br/>セッション Cookie" --> S[Spring Boot]
-    S --> D[(PostgreSQL 16)]
-    S --> O[(画像ストレージ<br/>ローカル: RustFS / 本番: S3)]
+    B[ブラウザ] -- "画面表示 / Server Actions<br/>セッション Cookie" --> N[Next.js<br/>App Router]
+    N -- Prisma --> D[(PostgreSQL 16)]
+    N -- "S3 API" --> O[(画像ストレージ<br/>ローカル: RustFS / 本番: S3 互換)]
     B -- "画像の表示<br/>(署名付きURL)" --> O
 ```
 
-- フロントエンドとバックエンドは別プロセスで起動し、開発時は Vite のプロキシで `/api` をバックエンドへ転送する。
-- ディレクトリ構成: `app/`(フロントエンド)、`backend/`(バックエンド)、`docs/`(ドキュメント)、`docker-compose.yml`(ローカルの DB・画像ストレージ)
+- **画面**: App Router を使う。一覧・詳細などの表示は Server Components でサーバー側でデータを取得して描画する。並び替え・お気に入りボタンなど操作が必要な部分だけ Client Components にする。
+- **更新処理**: 投稿・編集・削除・お気に入り・コメントは Server Actions で行う。入力は Zod でサーバー側でも検証する。
+- **認証**: Better Auth(メールアドレス + パスワード)。セッションは DB に保存し、Cookie で受け渡す。認証用のエンドポイントは Route Handler(`/api/auth/[...all]`)に置く。
+- **層の分け方**: `app/`(画面・Server Actions)→ `lib/services/`(業務ルール・権限確認)→ Prisma(DB アクセス)。Server Actions から直接 Prisma を呼ばず、必ず service を通す。
+- **ディレクトリ構成**: リポジトリ直下に Next.js プロジェクトを置く(`app/`、`components/`、`lib/`、`prisma/`、`tests/`)。`docs/` はドキュメント、`docker-compose.yml` はローカルの DB・画像ストレージ。
 
-### 11.2 フロントエンド
+### 11.2 アプリケーション
 | パッケージ / ツール | バージョン | 用途 |
 |---|---|---|
 | Node.js | 24.x | 実行環境 |
-| React / React DOM | 19.2.8 | UI ライブラリ(JavaScript。TypeScript は使わない) |
-| React Router | 7.18.4 | 画面遷移・検索条件の URL 管理 |
-| Vite | 8.2.1 | 開発サーバー・ビルド |
-| @vitejs/plugin-react | 6.0.5 | Vite の React 対応 |
+| TypeScript | 6.0.3 | 言語(`strict: true`) |
+| Next.js | 16.4.5 | フレームワーク(App Router、Server Actions) |
+| React / React DOM | 19.3.1 | UI ライブラリ |
+| Prisma(`prisma` / `@prisma/client` / `@prisma/adapter-pg`) | 7.10.1 | ORM・マイグレーション(Prisma Migrate) |
+| Better Auth | 1.7.18 | 認証(メールアドレス + パスワード、DB セッション、ログイン試行の制限) |
+| Zod | 4.6.7 | 入力検証(画面とサーバーで同じスキーマを使う) |
+| @aws-sdk/client-s3 / @aws-sdk/s3-request-presigner | 3.1164.0 | 画像ストレージ(S3 互換)への保存・署名付き URL |
 | @dnd-kit/core / @dnd-kit/sortable | 6.3.1 / 10.0.0 | 材料・手順の並び替え |
-| oxlint | 1.77.0 | Lint |
-| Vitest | 5.0.5 | 単体テスト |
-| @testing-library/react | 16.3.3 | 画面単位のテスト |
+| スタイル | CSS Modules(Next.js 標準) | 追加のライブラリは使わない |
 
-### 11.3 バックエンド
+### 11.3 開発・品質
 | パッケージ / ツール | バージョン | 用途 |
 |---|---|---|
-| Java (JDK) | 21 | 実行環境 |
-| Maven | 3.9.9 | ビルド |
-| Spring Boot(`spring-boot-starter-parent`) | 3.3.4 | web / security / validation / actuator / test |
-| Spring Security | Spring Boot 3.3.4 の管理バージョン | セッション認証・CSRF 対策 |
-| データアクセス | Spring Data JPA(Spring Boot 3.3.4 の管理バージョン) | DB アクセス。※ MyBatis にするかは [要確認ポイント](09-open-questions.md) Q-05 |
-| PostgreSQL JDBC Driver | 42.7.4 | DB 接続 |
-| Flyway | 10.10.0 | マイグレーション |
-| AWS SDK for Java v2(BOM) | 2.28.29 | 画像ストレージ(S3 互換)へのアクセス |
-| Checkstyle / SpotBugs | 14.4.0 / 4.10.5.0 | 静的解析 |
+| ESLint / eslint-config-next | 10.14.0 / 16.4.5 | Lint(Next.js 推奨ルール) |
+| Vitest | 5.1.0 | 単体テスト(service 層・入力検証) |
+| @testing-library/react | 16.3.3 | 画面部品のテスト |
+| @playwright/test | 1.65.0 | E2E テスト(投稿 → 検索 → お気に入りの一連の流れ) |
+
+- バージョンは 2026-11-08 時点の安定版。環境構築時に組み合わせて動くことを確認し、`package-lock.json` で固定する(`^` を付けない)。
 
 ### 11.4 データベース・ストレージ・開発環境
-- PostgreSQL 16(`docker-compose.yml` でローカル起動。イメージ `postgres:16`)。他アプリの DB と同時に起動できるよう、ホスト側ポートは 5434 を使う。拡張機能 `pg_trgm` を使う。
-- 画像ストレージ: ローカルは S3 互換の RustFS(`rustfs/rustfs:1.0.1`)。ポートは他アプリと重ならないものを設計時に決める。
-- CI: GitHub Actions(バックエンドのテスト・静的解析、フロントエンドの Lint・テスト・ビルド)
+- PostgreSQL 16(`docker-compose.yml` でローカル起動。イメージ `postgres:16`)。他アプリの DB と同時に起動できるよう、ホスト側ポートは 5434 を使う。拡張機能 `pg_trgm` は Prisma のマイグレーション SQL で有効にする。
+- 画像ストレージ: ローカルは S3 互換の RustFS(`rustfs/rustfs:1.0.1`)。本番は S3 互換のストレージ([要確認ポイント](09-open-questions.md) Q-06)。アプリのコードは共通で、接続先の設定だけ切り替える。
+- 画像アップロードは Server Actions で受け取るため、`next.config` の `serverActions.bodySizeLimit` を写真の上限(5MB)より少し大きい値にする。
+- CI: GitHub Actions(型チェック `tsc --noEmit`、ESLint、Vitest、ビルド)。E2E テストは手元で実行する。
