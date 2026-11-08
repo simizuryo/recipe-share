@@ -1,0 +1,199 @@
+// データモデル: docs/requirements/03-data-model.md
+// テーブル名・カラム名は DB では snake_case、TypeScript では camelCase にする(@@map / @map)。
+// pg_trgm 拡張の有効化と CHECK 制約は Prisma のスキーマで書けないため、マイグレーション SQL に手で書く。
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- 認証(Better Auth が読み書きする。項目名は Better Auth の決まりに合わせる) ----------
+
+model User {
+  id            Int      @id @default(autoincrement())
+  /// 表示名(Better Auth の name 項目として扱う)
+  name          String   @map("display_name") @db.VarChar(20)
+  email         String   @unique @db.VarChar(255)
+  emailVerified Boolean  @default(false) @map("email_verified")
+  image         String?
+  /// ユーザーページの URL に使う。半角英数字と _、3〜20文字
+  username      String   @unique @db.VarChar(20)
+  /// 自己紹介
+  bio           String?  @db.VarChar(200)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sessions  Session[]
+  accounts  Account[]
+  recipes   Recipe[]
+  favorites Favorite[]
+  comments  Comment[]
+
+  @@map("users")
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  token     String   @unique
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// ログイン方法ごとの情報。メールアドレス + パスワードの場合、パスワードのハッシュは password に入る
+model Account {
+  id                    Int       @id @default(autoincrement())
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                Int       @map("user_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(3)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(3)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         Int      @id @default(autoincrement())
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+/// ログイン試行などのレート制限の記録(Vercel では複数のインスタンスで動くため、メモリではなく DB に置く)
+model RateLimit {
+  id          Int    @id @default(autoincrement())
+  key         String @unique
+  count       Int
+  /// 最後のリクエストの時刻(ミリ秒)
+  lastRequest BigInt @map("last_request")
+
+  @@map("rate_limits")
+}
+
+// ---------- レシピ ----------
+
+enum Category {
+  MAIN    // 主菜
+  SIDE    // 副菜
+  SOUP    // 汁物
+  STAPLE  // 主食
+  DESSERT // デザート
+  OTHER   // その他
+
+  @@map("category")
+}
+
+model Recipe {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  title       String   @db.VarChar(50)
+  description String?  @db.VarChar(300)
+  /// 何人分(1〜20)
+  servings    Int      @db.SmallInt
+  /// 調理時間(分、1〜600)
+  cookMinutes Int      @map("cook_minutes") @db.SmallInt
+  category    Category
+  /// 完成写真の保存先キー(写真なしは null)
+  imageKey    String?  @map("image_key") @db.VarChar(100)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ingredients Ingredient[]
+  steps       Step[]
+  favorites   Favorite[]
+  comments    Comment[]
+
+  @@index([createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([category, cookMinutes])
+  /// キーワード検索(部分一致)用。pg_trgm 拡張はマイグレーション SQL で有効にする
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "recipes_title_trgm_idx")
+  @@map("recipes")
+}
+
+model Ingredient {
+  id       Int    @id @default(autoincrement())
+  recipeId Int    @map("recipe_id")
+  /// 表示順(0始まり)
+  position Int    @db.SmallInt
+  name     String @db.VarChar(30)
+  /// 分量(「大さじ1」「少々」など。空文字可)
+  quantity String @default("") @db.VarChar(20)
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, position])
+  /// キーワード検索(部分一致)用
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "ingredients_name_trgm_idx")
+  @@map("ingredients")
+}
+
+model Step {
+  id       Int    @id @default(autoincrement())
+  recipeId Int    @map("recipe_id")
+  /// 手順の番号(0始まり。表示は +1)
+  position Int    @db.SmallInt
+  body     String @db.VarChar(300)
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, position])
+  @@map("steps")
+}
+
+model Favorite {
+  userId    Int      @map("user_id")
+  recipeId  Int      @map("recipe_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, recipeId])
+  @@index([recipeId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("favorites")
+}
+
+/// コメント(F-11、v1.1)。テーブルだけ先に作っておく
+model Comment {
+  id        Int      @id @default(autoincrement())
+  recipeId  Int      @map("recipe_id")
+  userId    Int      @map("user_id")
+  body      String   @db.VarChar(300)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId, createdAt])
+  @@map("comments")
+}
