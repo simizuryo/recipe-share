@@ -1,0 +1,17 @@
+#!/bin/sh
+# main ブランチへの直接プッシュ(削除を含む)を拒否する。
+# GitHub の branch protection はプライベートリポジトリ×無料プランでは使えないため、
+# ローカルのフックで CLAUDE.md のルール3「main への直接プッシュ禁止」を守る。
+# 有効化: git config core.hooksPath .githooks
+
+protected_ref="refs/heads/main"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "$protected_ref" ]; then
+    echo "pre-push: main への直接プッシュは禁止されています。" >&2
+    echo "pre-push: 作業ブランチを push して Pull Request を作成してください(CLAUDE.md 参照)。" >&2
+    exit 1
+  fi
+done
+
+exit 0
