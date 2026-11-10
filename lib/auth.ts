@@ -33,6 +33,8 @@ export const auth = betterAuth({
     database: { generateId: "serial" },
   },
   rateLimit: {
+    // 既定では本番(NODE_ENV=production)だけで有効になる。開発中も同じ動きで確認できるよう常に有効にする
+    enabled: true,
     storage: "database",
     customRules: {
       // ログインは同じ接続元から 1分 10回まで(総当たり対策)
