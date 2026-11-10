@@ -1,0 +1,173 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.label,
+.legend {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.legend {
+  margin-bottom: 0.5rem;
+}
+
+.required {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-left: 0.25rem;
+}
+
+.input,
+.textarea {
+  font: inherit;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+  min-width: 0;
+}
+
+.textarea {
+  resize: vertical;
+}
+
+.input[aria-invalid="true"],
+.textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.row3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .row3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.section {
+  border: none;
+}
+
+.rows {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rowItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.rowInputs {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.grow {
+  flex: 1 1 auto;
+}
+
+.quantity {
+  flex: 0 1 8.5rem;
+}
+
+.stepNumber {
+  flex: 0 0 1.6rem;
+  height: 1.6rem;
+  margin-top: 0.45rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+.rowButtons {
+  display: flex;
+  gap: 0.2rem;
+  flex: 0 0 auto;
+}
+
+.iconButton {
+  font: inherit;
+  width: 2.1rem;
+  height: 2.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.iconButton:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.addButton {
+  margin-top: 0.5rem;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.addButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.error {
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+.formError {
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.submit {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  cursor: pointer;
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
