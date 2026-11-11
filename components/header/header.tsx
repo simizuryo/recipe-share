@@ -1,4 +1,3 @@
-import Form from "next/form";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -6,11 +5,12 @@ import { getCurrentUser } from "@/lib/session";
 
 import { GuestLinks } from "./guest-links";
 import styles from "./header.module.css";
+import { HeaderSearch, HeaderSearchFallback } from "./header-search";
 import { UserMenu } from "./user-menu";
 
 /**
  * 全画面共通のヘッダー(docs/requirements/04-screen-design.md)。
- * ロゴと検索欄は静的に描画し、ログイン状態で変わる部分だけ <Suspense> の内側で読み込む。
+ * ロゴは静的に描画し、URL のクエリで変わる検索欄とログイン状態で変わる部分は <Suspense> の内側で読み込む。
  */
 export function Header() {
   return (
@@ -19,16 +19,9 @@ export function Header() {
         <Link href="/" className={styles.logo}>
           recipe-share
         </Link>
-        <Form action="/" className={styles.search} role="search">
-          <input
-            type="search"
-            name="q"
-            placeholder="料理名・材料で検索"
-            aria-label="レシピを検索"
-            className={styles.searchInput}
-            maxLength={50}
-          />
-        </Form>
+        <Suspense fallback={<HeaderSearchFallback />}>
+          <HeaderSearch />
+        </Suspense>
         <Suspense fallback={<div className={styles.nav} aria-hidden />}>
           <HeaderNav />
         </Suspense>

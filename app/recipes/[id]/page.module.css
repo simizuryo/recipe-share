@@ -73,3 +73,15 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.back:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+}
