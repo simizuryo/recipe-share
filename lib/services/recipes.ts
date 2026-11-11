@@ -1,7 +1,17 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { getDb } from "@/lib/db";
 import type { RecipeInput } from "@/lib/validation/recipe";
+import {
+  afterCursorWhere,
+  buildRecipeWhere,
+  encodeCursor,
+  PAGE_SIZE,
+  type RecipeCursor,
+  type RecipeSearch,
+} from "@/lib/search/recipe-search";
 
 /**
  * レシピを材料・手順と一緒に保存する(F-03)。
@@ -84,8 +94,11 @@ export async function deleteRecipe(userId: number, recipeId: number): Promise<Re
   return exists ? "forbidden" : "not_found";
 }
 
-/** レシピ詳細(F-06)。見つからなければ null */
-export async function getRecipeDetail(id: number) {
+/**
+ * レシピ詳細(F-06)。見つからなければ null。
+ * 1回のリクエストの中では結果を使い回す(画面のタイトル generateMetadata と本体で2回 DB を引かない)。
+ */
+export const getRecipeDetail = cache(async (id: number) => {
   return getDb().recipe.findUnique({
     where: { id },
     select: {
@@ -97,11 +110,65 @@ export async function getRecipeDetail(id: number) {
       category: true,
       createdAt: true,
       updatedAt: true,
+      imageKey: true,
       user: { select: { id: true, username: true, name: true } },
+      _count: { select: { favorites: true } },
       ingredients: { orderBy: { position: "asc" }, select: { name: true, quantity: true } },
       steps: { orderBy: { position: "asc" }, select: { body: true } },
     },
   });
-}
+});
 
 export type RecipeDetail = NonNullable<Awaited<ReturnType<typeof getRecipeDetail>>>;
+
+/** 一覧のカード1枚分(F-05)。Client Component にも渡すので、日付は文字列にする */
+export type RecipeCard = {
+  id: number;
+  title: string;
+  cookMinutes: number;
+  category: RecipeDetail["category"];
+  imageKey: string | null;
+  authorName: string;
+  favoriteCount: number;
+};
+
+export type RecipePage = { items: RecipeCard[]; nextCursor: string | null };
+
+/**
+ * レシピ一覧・検索(F-05 / F-07)。新着順に PAGE_SIZE 件ずつ返す。
+ * 投稿者名とお気に入り数も同じクエリで取る(N+1 にしない)。
+ * 1件多く取って、続きがあるかを判断する。
+ */
+export async function listRecipes(search: RecipeSearch, cursor: RecipeCursor | null = null): Promise<RecipePage> {
+  const where = buildRecipeWhere(search);
+  const rows = await getDb().recipe.findMany({
+    where: cursor ? { AND: [where, afterCursorWhere(cursor)] } : where,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: PAGE_SIZE + 1,
+    select: {
+      id: true,
+      title: true,
+      cookMinutes: true,
+      category: true,
+      imageKey: true,
+      createdAt: true,
+      user: { select: { name: true } },
+      _count: { select: { favorites: true } },
+    },
+  });
+
+  const page = rows.slice(0, PAGE_SIZE);
+  const last = page.at(-1);
+  return {
+    items: page.map((row) => ({
+      id: row.id,
+      title: row.title,
+      cookMinutes: row.cookMinutes,
+      category: row.category,
+      imageKey: row.imageKey,
+      authorName: row.user.name,
+      favoriteCount: row._count.favorites,
+    })),
+    nextCursor: rows.length > PAGE_SIZE && last ? encodeCursor(last) : null,
+  };
+}

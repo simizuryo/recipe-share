@@ -1,0 +1,60 @@
+.list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+/* 「もっと見る」で読み込んだ分は、最初の一覧の続きに見えるよう間を空けすぎない */
+.list + .list {
+  margin-top: 1rem;
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.moreButton {
+  font: inherit;
+  padding: 0.6rem 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.moreButton:hover {
+  background: var(--hover);
+}
+
+.moreButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.error {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--danger);
+}
+
+.empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+@media (max-width: 520px) {
+  .list {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .list + .list {
+    margin-top: 0.6rem;
+  }
+}
