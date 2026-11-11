@@ -1,12 +1,18 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { DeleteRecipeButton } from "@/components/recipe/delete-recipe-button";
+import ownerStyles from "@/components/recipe/recipe-owner-actions.module.css";
 import { CATEGORY_LABELS } from "@/lib/category";
 import { getRecipeDetail } from "@/lib/services/recipes";
+import { getCurrentUser } from "@/lib/session";
+import { parseRecipeId } from "@/lib/validation/recipe";
 
+import { deleteRecipeAction } from "./actions";
 import styles from "./page.module.css";
 
-// S-04 レシピ詳細(F-06)。写真・お気に入り・編集削除・コメントは各機能で追加する
+// S-04 レシピ詳細(F-06)。写真・お気に入り・コメントは各機能で追加する
 export default function RecipePage({ params }: PageProps<"/recipes/[id]">) {
   return (
     <main className={styles.page}>
@@ -19,10 +25,15 @@ export default function RecipePage({ params }: PageProps<"/recipes/[id]">) {
   );
 }
 
-async function RecipeContent({ id }: { id: string }) {
-  if (!/^[1-9][0-9]{0,9}$/.test(id) || Number(id) > 2_147_483_647) notFound();
-  const recipe = await getRecipeDetail(Number(id));
+async function RecipeContent({ id: rawId }: { id: string }) {
+  const id = parseRecipeId(rawId);
+  if (id === null) notFound();
+  const [recipe, user] = await Promise.all([getRecipeDetail(id), getCurrentUser()]);
   if (!recipe) notFound();
+
+  const isOwner = user?.id === recipe.user.id;
+  // 投稿時は投稿日と更新日が同じ時刻。後になっていれば編集したレシピ
+  const edited = recipe.updatedAt.getTime() > recipe.createdAt.getTime();
 
   return (
     <article>
@@ -32,8 +43,24 @@ async function RecipeContent({ id }: { id: string }) {
         <span>by {recipe.user.name}</span>
         <span>{CATEGORY_LABELS[recipe.category]}</span>
         <span>{recipe.cookMinutes}分</span>
-        <time dateTime={recipe.createdAt.toISOString()}>{formatDate(recipe.createdAt)}</time>
+        <span>
+          投稿 <time dateTime={recipe.createdAt.toISOString()}>{formatDate(recipe.createdAt)}</time>
+        </span>
+        {edited && (
+          <span>
+            更新 <time dateTime={recipe.updatedAt.toISOString()}>{formatDate(recipe.updatedAt)}</time>
+          </span>
+        )}
       </p>
+      {/* 編集・削除は投稿者にだけ表示する(操作時も Server Action 側で確認する) */}
+      {isOwner && (
+        <div className={ownerStyles.actions}>
+          <Link href={`/recipes/${id}/edit`} className={ownerStyles.secondary}>
+            編集
+          </Link>
+          <DeleteRecipeButton title={recipe.title} action={deleteRecipeAction.bind(null, id)} />
+        </div>
+      )}
       {recipe.description && <p className={styles.description}>{recipe.description}</p>}
 
       <section className={styles.section} aria-labelledby="ingredients-heading">

@@ -109,3 +109,42 @@ export function recipeFieldErrors(error: z.ZodError): Record<string, string> {
   }
   return errors;
 }
+
+/** 投稿・編集フォームの Server Action が返す状態 */
+export type RecipeFormState = {
+  values?: RecipeFormValues;
+  /** 項目のパス(title、ingredients.2.name など)→ メッセージ */
+  errors?: Record<string, string>;
+};
+
+/** 保存済みのレシピを、編集フォームの初期値にする(F-04) */
+export function recipeToFormValues(recipe: {
+  title: string;
+  description: string | null;
+  servings: number;
+  cookMinutes: number;
+  category: string;
+  ingredients: { name: string; quantity: string }[];
+  steps: { body: string }[];
+}): RecipeFormValues {
+  return {
+    title: recipe.title,
+    description: recipe.description ?? "",
+    servings: String(recipe.servings),
+    cookMinutes: String(recipe.cookMinutes),
+    category: recipe.category,
+    ingredients: recipe.ingredients.map(({ name, quantity }) => ({ name, quantity })),
+    steps: recipe.steps.map(({ body }) => ({ body })),
+  };
+}
+
+/**
+ * URL や Server Action の引数で受け取ったレシピ ID を数値にする。
+ * 1 以上・PostgreSQL の integer の範囲内の整数だけを受け付け、それ以外は null。
+ */
+export function parseRecipeId(value: unknown): number | null {
+  const text = typeof value === "number" ? String(value) : value;
+  if (typeof text !== "string" || !/^[1-9][0-9]{0,9}$/.test(text)) return null;
+  const id = Number(text);
+  return id <= 2_147_483_647 ? id : null;
+}

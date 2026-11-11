@@ -1,0 +1,84 @@
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.secondary,
+.danger {
+  display: inline-block;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.secondary {
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.secondary:hover {
+  background: var(--hover);
+}
+
+.danger {
+  border: 1px solid var(--danger);
+  background: var(--background);
+  color: var(--danger);
+}
+
+.danger:hover {
+  background: var(--danger-bg);
+}
+
+.dialog .danger {
+  background: var(--danger);
+  color: var(--background);
+  font-weight: 600;
+}
+
+.secondary:disabled,
+.danger:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.dialog {
+  margin: auto;
+  width: min(420px, calc(100vw - 2rem));
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.dialog::backdrop {
+  background: rgb(0 0 0 / 0.45);
+}
+
+.dialogTitle {
+  font-size: 1.1rem;
+}
+
+.dialogBody {
+  margin-top: 0.6rem;
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.error {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+.dialogButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+}

@@ -2,9 +2,8 @@
 
 import { useActionState, useState } from "react";
 
-import type { RecipeFormState } from "@/app/recipes/new/actions";
 import { CATEGORIES, CATEGORY_LABELS } from "@/lib/category";
-import { MAX_INGREDIENTS, MAX_STEPS, type RecipeFormValues } from "@/lib/validation/recipe";
+import { MAX_INGREDIENTS, MAX_STEPS, type RecipeFormState, type RecipeFormValues } from "@/lib/validation/recipe";
 
 import styles from "./recipe-form.module.css";
 

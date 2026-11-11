@@ -4,13 +4,7 @@ import { redirect } from "next/navigation";
 
 import { createRecipe } from "@/lib/services/recipes";
 import { requireUser } from "@/lib/session";
-import { readRecipeForm, recipeFieldErrors, recipeSchema, type RecipeFormValues } from "@/lib/validation/recipe";
-
-export type RecipeFormState = {
-  values?: RecipeFormValues;
-  /** 項目のパス(title、ingredients.2.name など)→ メッセージ */
-  errors?: Record<string, string>;
-};
+import { readRecipeForm, recipeFieldErrors, recipeSchema, type RecipeFormState } from "@/lib/validation/recipe";
 
 /** レシピ投稿(F-03)。画面の確認とは別に、ここでもログインを確認する */
 export async function createRecipeAction(_prev: RecipeFormState, formData: FormData): Promise<RecipeFormState> {
