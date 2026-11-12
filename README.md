@@ -23,7 +23,10 @@ npm ci
 # 4. テーブルを作る
 npm run db:migrate
 
-# 5. 開発サーバーを起動する → http://localhost:3000
+# 5. 写真の保存先のバケットを作る(初回だけ)
+npm run storage:init
+
+# 6. 開発サーバーを起動する → http://localhost:3000
 npm run dev
 ```
 
@@ -41,6 +44,7 @@ npm run dev
 | `npm run db:migrate` | スキーマの変更からマイグレーションを作って適用する(開発用) |
 | `npm run db:deploy` | 作成済みのマイグレーションを適用する(本番用) |
 | `npm run db:studio` | DB の中身をブラウザで見る(Prisma Studio) |
+| `npm run storage:init` | 写真の保存先のバケットを作る(ローカルの RustFS。すでにあれば何もしない) |
 
 Pull Request では GitHub Actions が typecheck・lint・test・build を実行する。
 
@@ -49,8 +53,9 @@ Pull Request では GitHub Actions が typecheck・lint・test・build を実行
 | 場所 | 内容 |
 |---|---|
 | `app/` | 画面と Server Actions、Route Handler(`app/api/auth` は Better Auth、`app/api/health` は動作確認用) |
-| `lib/` | 共通の処理(`db.ts` は Prisma Client、`auth.ts` は認証の設定)。業務ルールは `lib/services/` に置く |
+| `lib/` | 共通の処理(`db.ts` は Prisma Client、`auth.ts` は認証の設定、`storage.ts` は写真の保存先)。業務ルールは `lib/services/` に置く |
 | `lib/generated/` | Prisma が生成するコード(コミットしない) |
+| `scripts/` | 開発用のスクリプト(`create-bucket.mjs` は写真の保存先のバケットを作る) |
 | `prisma/` | スキーマとマイグレーション |
 | `tests/unit/` | 単体テスト |
 | `docs/` | 要件定義書 |

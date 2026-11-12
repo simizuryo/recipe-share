@@ -1,7 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { CATEGORY_LABELS } from "@/lib/category";
 import type { RecipeCard as RecipeCardData } from "@/lib/services/recipes";
+import { imageUrl } from "@/lib/validation/image";
 
 import { FavoriteButton } from "./favorite-button";
 import styles from "./recipe-card.module.css";
@@ -15,7 +17,7 @@ export type CardViewer = {
 
 /**
  * 一覧のカード1枚(F-05)。サーバーで描画する最初の 20件と、「もっと見る」で読み込んだ分の両方で使う。
- * 完成写真は F-09 で表示する。それまでは(写真がないレシピも)代わりの画像を出す。
+ * 完成写真(F-09)は next/image で表示幅に合わせて縮小した画像を使う。写真がないレシピはカテゴリ名の代わりの画像を出す。
  * リンクの中にボタンは置けないので、リンクは料理名だけにして、CSS でカード全体を押せるように広げる。
  * お気に入りボタンはその上に重ねる。
  */
@@ -23,7 +25,17 @@ export function RecipeCard({ recipe, viewer }: { recipe: RecipeCardData; viewer:
   return (
     <li className={styles.card}>
       <div className={styles.thumb} data-category={recipe.category} aria-hidden>
-        <span>{CATEGORY_LABELS[recipe.category]}</span>
+        {recipe.imageKey ? (
+          <Image
+            src={imageUrl(recipe.imageKey)}
+            alt=""
+            fill
+            sizes="(max-width: 520px) 110px, (max-width: 900px) 50vw, 300px"
+            className={styles.photo}
+          />
+        ) : (
+          <span>{CATEGORY_LABELS[recipe.category]}</span>
+        )}
       </div>
       <div className={styles.body}>
         <h2 className={styles.title}>

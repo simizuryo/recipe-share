@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+/* eslint-disable @next/next/no-img-element -- 選んだ写真のプレビュー(blob: URL)は next/image で最適化できない */
+import { useActionState, useEffect, useState } from "react";
 
 import { CATEGORIES, CATEGORY_LABELS } from "@/lib/category";
+import { checkImage, IMAGE_ACCEPT, IMAGE_HEADER_BYTES } from "@/lib/validation/image";
 import { MAX_INGREDIENTS, MAX_STEPS, type RecipeFormState, type RecipeFormValues } from "@/lib/validation/recipe";
 
 import styles from "./recipe-form.module.css";
@@ -27,17 +29,22 @@ const EMPTY_VALUES: RecipeFormValues = {
  * レシピの入力フォーム(S-05)。投稿(F-03)と編集(F-04)で使う。
  * 材料・手順の欄は画面の並び順のまま送信され、その順番で保存される。
  * 入力欄は state で持つので、エラーで戻ってきても入力内容は消えない。
+ * ただし写真のファイルはブラウザの仕様で入れ直せないため、エラーで戻ってきたら選び直してもらう。
  */
 export function RecipeForm({
   action,
   initialValues = EMPTY_VALUES,
   submitLabel,
+  currentImageUrl = null,
 }: {
   action: (prev: RecipeFormState, formData: FormData) => Promise<RecipeFormState>;
   initialValues?: RecipeFormValues;
   submitLabel: string;
+  /** 編集時、今の完成写真の URL(写真なしは null) */
+  currentImageUrl?: string | null;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  const photo = usePhotoField();
 
   const [fields, setFields] = useState(() => pickFields(initialValues));
   const [ingredients, setIngredients] = useState(() =>
@@ -56,9 +63,12 @@ export function RecipeForm({
       setIngredients(withKeys(state.values.ingredients.length > 0 ? state.values.ingredients : [{ name: "", quantity: "" }]));
       setSteps(withKeys(state.values.steps.length > 0 ? state.values.steps : [{ body: "" }]));
     }
+    // 送信後、ブラウザはファイル選択欄を空に戻すので、プレビューも消して選び直してもらう
+    if (state.errors) photo.cleared();
   }
 
   const errors = state.errors ?? {};
+  const imageError = photo.error ?? errors.image;
   const setField = (name: keyof typeof fields) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setFields((f) => ({ ...f, [name]: e.target.value }));
 
@@ -146,6 +156,55 @@ export function RecipeForm({
             ))}
           </select>
         </Field>
+      </div>
+
+      <div className={styles.field}>
+        <label htmlFor="image" className={styles.label}>
+          完成写真
+        </label>
+        <div className={styles.photo}>
+          {photo.previewUrl ? (
+            <img src={photo.previewUrl} alt="選んだ写真のプレビュー" className={styles.photoPreview} />
+          ) : (
+            currentImageUrl &&
+            !photo.remove && <img src={currentImageUrl} alt="今の完成写真" className={styles.photoPreview} />
+          )}
+          <input
+            id="image"
+            name="image"
+            type="file"
+            accept={IMAGE_ACCEPT}
+            className={styles.fileInput}
+            onChange={photo.onChange}
+            aria-invalid={!!imageError}
+            aria-describedby="image-hint"
+          />
+          <span id="image-hint" className={styles.hint}>
+            JPEG・PNG・WebP、5MB まで。{currentImageUrl ? "新しい写真を選ぶと差し替えます" : "なくても投稿できます"}
+          </span>
+          {currentImageUrl && !photo.previewUrl && (
+            <label className={styles.checkbox}>
+              <input
+                key={photo.resetCount}
+                type="checkbox"
+                name="removeImage"
+                checked={photo.remove}
+                onChange={(e) => photo.setRemove(e.target.checked)}
+              />
+              写真を削除する
+            </label>
+          )}
+          {photo.reselect && !imageError && (
+            <span className={styles.hint} role="status">
+              写真はもう一度選んでください
+            </span>
+          )}
+          {imageError && (
+            <span className={styles.error} role="alert">
+              {imageError}
+            </span>
+          )}
+        </div>
       </div>
 
       <fieldset className={styles.section}>
@@ -255,6 +314,53 @@ export function RecipeForm({
       </button>
     </form>
   );
+}
+
+/**
+ * 完成写真の選択欄(F-09)。選んだ時点で形式・サイズを確かめてプレビューを出す(保存時はサーバーでも確かめる)。
+ */
+function usePhotoField() {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [remove, setRemove] = useState(false);
+  const [reselect, setReselect] = useState(false);
+  // 送信後にブラウザがフォームを初期状態に戻すため、チェックボックスを作り直して state の値を表示し直す
+  const [resetCount, setResetCount] = useState(0);
+
+  // 前のプレビューの blob: URL を解放する
+  useEffect(() => {
+    if (!previewUrl) return;
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
+
+  async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.currentTarget;
+    const file = input.files?.[0];
+    setError(null);
+    setReselect(false);
+    setPreviewUrl(null);
+    if (!file) return;
+
+    const header = new Uint8Array(await file.slice(0, IMAGE_HEADER_BYTES).arrayBuffer());
+    const check = checkImage(file.size, header);
+    if (!check.ok) {
+      setError(check.error);
+      input.value = "";
+      return;
+    }
+    setRemove(false);
+    setPreviewUrl(URL.createObjectURL(file));
+  }
+
+  /** 送信後にファイル選択欄が空になったとき */
+  function cleared() {
+    if (previewUrl) setReselect(true);
+    setPreviewUrl(null);
+    setError(null);
+    setResetCount((n) => n + 1);
+  }
+
+  return { resetCount, previewUrl, error, remove, setRemove, reselect, onChange, cleared };
 }
 
 function pickFields(v: RecipeFormValues) {
