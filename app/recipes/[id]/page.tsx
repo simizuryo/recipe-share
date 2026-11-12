@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -10,6 +11,7 @@ import { CATEGORY_LABELS } from "@/lib/category";
 import { isFavorited } from "@/lib/services/favorites";
 import { getRecipeDetail, type RecipeDetail } from "@/lib/services/recipes";
 import { getCurrentUser } from "@/lib/session";
+import { imageUrl } from "@/lib/validation/image";
 import { parseRecipeId } from "@/lib/validation/recipe";
 
 import { deleteRecipeAction } from "./actions";
@@ -28,7 +30,7 @@ export async function generateMetadata({ params }: PageProps<"/recipes/[id]">): 
   return { title: `${recipe ? recipe.title : "レシピが見つかりません"} | recipe-share` };
 }
 
-// S-04 レシピ詳細(F-06)。完成写真・コメントは各機能で追加する
+// S-04 レシピ詳細(F-06)。コメントは F-11 で追加する
 export default async function RecipePage({ params }: PageProps<"/recipes/[id]">) {
   const id = parseRecipeId((await params).id);
   if (id === null) notFound();
@@ -44,6 +46,21 @@ export default async function RecipePage({ params }: PageProps<"/recipes/[id]">)
         ← レシピ一覧へ
       </Link>
       <article>
+        {/* 完成写真(F-09)。写真がなければ代わりの画像を出す */}
+        <div className={styles.photo} data-category={recipe.category}>
+          {recipe.imageKey ? (
+            <Image
+              src={imageUrl(recipe.imageKey)}
+              alt={`${recipe.title}の完成写真`}
+              fill
+              sizes="(max-width: 760px) 100vw, 720px"
+              preload
+              className={styles.photoImage}
+            />
+          ) : (
+            <span aria-hidden>{CATEGORY_LABELS[recipe.category]}</span>
+          )}
+        </div>
         <h1 className={styles.title}>{recipe.title}</h1>
         <p className={styles.meta}>
           <span>by {recipe.user.name}</span>

@@ -95,3 +95,23 @@
   font-size: 0.95rem;
   color: var(--muted);
 }
+
+/* 完成写真(F-09)。写真がないときは代わりの画像(カテゴリ名) */
+.photo {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  max-height: 420px;
+  width: 100%;
+  margin: 0.75rem 0 1rem;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--hover);
+}
+
+.photoImage {
+  object-fit: cover;
+}

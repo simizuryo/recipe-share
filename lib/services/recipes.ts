@@ -17,9 +17,13 @@ import {
 /**
  * レシピを材料・手順と一緒に保存する(F-03)。
  * ネストした create は1つのトランザクションで実行されるため、途中で失敗するとどれも保存されない。
- * 材料・手順の position は入力の順番(0始まり)。
+ * 材料・手順の position は入力の順番(0始まり)。imageKey は先にストレージへ保存した完成写真のキー(F-09)。
  */
-export async function createRecipe(userId: number, input: RecipeInput): Promise<{ id: number }> {
+export async function createRecipe(
+  userId: number,
+  input: RecipeInput,
+  imageKey: string | null = null,
+): Promise<{ id: number }> {
   // 投稿日と更新日を同じ時刻にそろえる(更新日が投稿日より後なら「編集した」と判断するため)
   const now = new Date();
   return getDb().recipe.create({
@@ -32,6 +36,7 @@ export async function createRecipe(userId: number, input: RecipeInput): Promise<
       servings: input.servings,
       cookMinutes: input.cookMinutes,
       category: input.category,
+      imageKey,
       ingredients: {
         create: input.ingredients.map((row, position) => ({ position, name: row.name, quantity: row.quantity })),
       },
@@ -46,18 +51,33 @@ export async function createRecipe(userId: number, input: RecipeInput): Promise<
 /** 更新・削除の結果。forbidden は他人のレシピ */
 export type RecipeWriteResult = "ok" | "not_found" | "forbidden";
 
+/** 編集時の完成写真の扱い(F-09)。keep はそのまま、set は新しい写真に差し替え、remove は写真なしにする */
+export type ImageChange = { type: "keep" } | { type: "set"; key: string } | { type: "remove" };
+
+/**
+ * 更新・削除の結果と、使われなくなった写真のキー。
+ * ストレージのファイルは DB の変更が確定してから呼び出し側で消す(先に消すと、DB の変更が失敗したときに写真だけ消える)。
+ */
+export type RecipeWriteOutcome = { result: RecipeWriteResult; unusedImageKey: string | null };
+
 /**
  * レシピを編集する(F-04)。投稿者本人でなければ何も変えずに forbidden を返す。
  * 材料・手順は今の行をすべて消して入力の順番で作り直す。全体を1つのトランザクションで行い、
  * 途中で失敗した場合はどれも変更しない。
  */
-export async function updateRecipe(userId: number, recipeId: number, input: RecipeInput): Promise<RecipeWriteResult> {
+export async function updateRecipe(
+  userId: number,
+  recipeId: number,
+  input: RecipeInput,
+  image: ImageChange = { type: "keep" },
+): Promise<RecipeWriteOutcome> {
   return getDb().$transaction(async (tx) => {
     // 行ロックを取り、同じレシピへの編集・削除が同時に来ても順番に処理する
-    const [owner] = await tx.$queryRaw<{ user_id: number }[]>`
-      SELECT user_id FROM recipes WHERE id = ${recipeId} FOR UPDATE`;
-    if (!owner) return "not_found";
-    if (owner.user_id !== userId) return "forbidden";
+    const [current] = await tx.$queryRaw<{ user_id: number; image_key: string | null }[]>`
+      SELECT user_id, image_key FROM recipes WHERE id = ${recipeId} FOR UPDATE`;
+    if (!current) return { result: "not_found", unusedImageKey: null };
+    if (current.user_id !== userId) return { result: "forbidden", unusedImageKey: null };
+    const imageKey = image.type === "keep" ? current.image_key : image.type === "set" ? image.key : null;
 
     // (recipe_id, position) は一意なので、作り直す前に今の行を消す
     await tx.ingredient.deleteMany({ where: { recipeId } });
@@ -70,6 +90,7 @@ export async function updateRecipe(userId: number, recipeId: number, input: Reci
         servings: input.servings,
         cookMinutes: input.cookMinutes,
         category: input.category,
+        imageKey,
         ingredients: {
           create: input.ingredients.map((row, position) => ({ position, name: row.name, quantity: row.quantity })),
         },
@@ -78,21 +99,23 @@ export async function updateRecipe(userId: number, recipeId: number, input: Reci
         },
       },
     });
-    return "ok";
+    return { result: "ok", unusedImageKey: current.image_key !== imageKey ? current.image_key : null };
   });
 }
 
 /**
  * レシピを削除する(F-04)。投稿者本人でなければ削除せずに forbidden を返す。
  * 材料・手順・お気に入り・コメントは DB の ON DELETE CASCADE で一緒に消える。
- * 完成写真(ストレージのファイル)の削除は F-09 で追加する。
+ * 完成写真のファイルは、返した unusedImageKey を使って呼び出し側で消す(F-09)。
  */
-export async function deleteRecipe(userId: number, recipeId: number): Promise<RecipeWriteResult> {
+export async function deleteRecipe(userId: number, recipeId: number): Promise<RecipeWriteOutcome> {
   const db = getDb();
-  const { count } = await db.recipe.deleteMany({ where: { id: recipeId, userId } });
-  if (count === 1) return "ok";
+  // 削除と同時に、写真のキーを受け取る(先に読むと、読んでから消すまでの間に差し替えられる可能性がある)
+  const deleted = await db.$queryRaw<{ image_key: string | null }[]>`
+    DELETE FROM recipes WHERE id = ${recipeId} AND user_id = ${userId} RETURNING image_key`;
+  if (deleted.length === 1) return { result: "ok", unusedImageKey: deleted[0].image_key };
   const exists = await db.recipe.findUnique({ where: { id: recipeId }, select: { id: true } });
-  return exists ? "forbidden" : "not_found";
+  return { result: exists ? "forbidden" : "not_found", unusedImageKey: null };
 }
 
 /**

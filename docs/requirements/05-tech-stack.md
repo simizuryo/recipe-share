@@ -32,7 +32,7 @@ flowchart LR
 | Better Auth | 1.7.18 | 認証(メールアドレス + パスワード、DB セッション、ログイン試行の制限) |
 | Zod | 4.6.7 | 入力検証(画面とサーバーで同じスキーマを使う) |
 | server-only | 0.0.1 | DB・認証の処理をブラウザ用のコードに混ぜないための目印 |
-| @aws-sdk/client-s3 / @aws-sdk/s3-request-presigner | 3.1164.0 | 画像ストレージ(S3 互換)への保存・署名付き URL(F-09 で導入) |
+| @aws-sdk/client-s3 | 3.1164.0 | 画像ストレージ(S3 互換)への保存・読み出し(F-09 で導入)。写真は非公開のバケットに置き、`/api/images/` から配信して `next/image` で縮小するため、署名付き URL(s3-request-presigner)は使わない |
 | @dnd-kit/core / @dnd-kit/sortable | 6.3.1 / 10.0.0 | 材料・手順の並び替え(F-03 で導入) |
 | スタイル | CSS Modules(Next.js 標準) | 追加のライブラリは使わない |
 

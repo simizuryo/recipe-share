@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { RecipeForm } from "@/components/recipe/recipe-form";
 import { getRecipeDetail } from "@/lib/services/recipes";
 import { requireUser } from "@/lib/session";
+import { imageUrl } from "@/lib/validation/image";
 import { parseRecipeId, recipeToFormValues } from "@/lib/validation/recipe";
 
 import { updateRecipeAction } from "./actions";
@@ -48,6 +49,7 @@ async function EditRecipeContent({ id: rawId }: { id: string }) {
       action={updateRecipeAction.bind(null, id)}
       initialValues={recipeToFormValues(recipe)}
       submitLabel="更新する"
+      currentImageUrl={recipe.imageKey ? imageUrl(recipe.imageKey) : null}
     />
   );
 }

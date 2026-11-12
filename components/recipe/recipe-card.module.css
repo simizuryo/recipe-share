@@ -40,6 +40,8 @@
 
 /* 代わりの画像(F-09 で完成写真を表示するまで、写真のないレシピもこれを出す) */
 .thumb {
+  position: relative;
+  overflow: hidden;
   aspect-ratio: 4 / 3;
   display: grid;
   place-items: center;
@@ -93,4 +95,9 @@
     flex: 0 0 110px;
     aspect-ratio: 1;
   }
+}
+
+/* 完成写真(F-09)。枠いっぱいに、縦横比を保って切り抜く */
+.photo {
+  object-fit: cover;
 }
