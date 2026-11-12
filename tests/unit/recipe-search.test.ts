@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   afterCursorWhere,
+  afterFavoriteCursorWhere,
   buildRecipeWhere,
   decodeCursor,
   encodeCursor,
@@ -148,6 +149,15 @@ describe("カーソル", () => {
   it("カーソルより古いもの、同じ時刻なら ID が小さいものに絞る", () => {
     expect(afterCursorWhere(cursor)).toEqual({
       OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: 12 } }],
+    });
+  });
+});
+
+describe("afterFavoriteCursorWhere", () => {
+  it("保存日時が古いもの、または同じ保存日時でレシピ ID が小さいものだけにする(F-08)", () => {
+    const cursor = { createdAt: new Date("2026-11-12T10:00:00.000Z"), id: 7 };
+    expect(afterFavoriteCursorWhere(cursor)).toEqual({
+      OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, recipeId: { lt: 7 } }],
     });
   });
 });

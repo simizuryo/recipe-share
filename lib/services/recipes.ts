@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { getDb } from "@/lib/db";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import type { RecipeInput } from "@/lib/validation/recipe";
 import {
   afterCursorWhere,
@@ -130,45 +131,68 @@ export type RecipeCard = {
   imageKey: string | null;
   authorName: string;
   favoriteCount: number;
+  /** 見ている人が保存済みか(F-08)。ゲストは常に false */
+  favorited: boolean;
 };
 
 export type RecipePage = { items: RecipeCard[]; nextCursor: string | null };
 
 /**
+ * カード1枚分を取る select。投稿者名・お気に入り数・見ている人が保存済みかを同じクエリで取る(N+1 にしない)。
+ * 保存済みかは、見ている人のお気に入りだけに絞って最大1行を取る(誰が保存したかは返さない)。
+ * ゲスト(viewerId が null)は存在しない ID 0 で絞り、常に0行にする。
+ */
+export function recipeCardSelect(viewerId: number | null) {
+  return {
+    id: true,
+    title: true,
+    cookMinutes: true,
+    category: true,
+    imageKey: true,
+    createdAt: true,
+    user: { select: { name: true } },
+    _count: { select: { favorites: true } },
+    favorites: { where: { userId: viewerId ?? 0 }, select: { userId: true }, take: 1 },
+  } satisfies Prisma.RecipeSelect;
+}
+
+type RecipeCardRow = Prisma.RecipeGetPayload<{ select: ReturnType<typeof recipeCardSelect> }>;
+
+export function toRecipeCard(row: RecipeCardRow): RecipeCard {
+  return {
+    id: row.id,
+    title: row.title,
+    cookMinutes: row.cookMinutes,
+    category: row.category,
+    imageKey: row.imageKey,
+    authorName: row.user.name,
+    favoriteCount: row._count.favorites,
+    favorited: row.favorites.length > 0,
+  };
+}
+
+/**
  * レシピ一覧・検索(F-05 / F-07)。新着順に PAGE_SIZE 件ずつ返す。
- * 投稿者名とお気に入り数も同じクエリで取る(N+1 にしない)。
+ * viewerId はログイン中のユーザー(ゲストは null)。お気に入りボタンの状態に使う(F-08)。
  * 1件多く取って、続きがあるかを判断する。
  */
-export async function listRecipes(search: RecipeSearch, cursor: RecipeCursor | null = null): Promise<RecipePage> {
+export async function listRecipes(
+  search: RecipeSearch,
+  cursor: RecipeCursor | null = null,
+  viewerId: number | null = null,
+): Promise<RecipePage> {
   const where = buildRecipeWhere(search);
   const rows = await getDb().recipe.findMany({
     where: cursor ? { AND: [where, afterCursorWhere(cursor)] } : where,
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: PAGE_SIZE + 1,
-    select: {
-      id: true,
-      title: true,
-      cookMinutes: true,
-      category: true,
-      imageKey: true,
-      createdAt: true,
-      user: { select: { name: true } },
-      _count: { select: { favorites: true } },
-    },
+    select: recipeCardSelect(viewerId),
   });
 
   const page = rows.slice(0, PAGE_SIZE);
   const last = page.at(-1);
   return {
-    items: page.map((row) => ({
-      id: row.id,
-      title: row.title,
-      cookMinutes: row.cookMinutes,
-      category: row.category,
-      imageKey: row.imageKey,
-      authorName: row.user.name,
-      favoriteCount: row._count.favorites,
-    })),
+    items: page.map(toRecipeCard),
     nextCursor: rows.length > PAGE_SIZE && last ? encodeCursor(last) : null,
   };
 }

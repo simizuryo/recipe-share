@@ -1,4 +1,5 @@
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -13,9 +14,28 @@
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.1);
 }
 
-.card:focus-visible {
+.card:has(.link:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* 料理名のリンクをカード全体に広げる(お気に入りボタンだけはその上に重ねる) */
+.link {
+  color: inherit;
+  text-decoration: none;
+  outline: none;
+}
+
+.link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.actions {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.15rem;
 }
 
 /* 代わりの画像(F-09 で完成写真を表示するまで、写真のないレシピもこれを出す) */

@@ -85,3 +85,13 @@
   color: var(--foreground);
   text-decoration: underline;
 }
+
+/* お気に入りボタン(F-08) */
+.favorite {
+  margin-top: 0.6rem;
+}
+
+.favoriteFallback {
+  font-size: 0.95rem;
+  color: var(--muted);
+}
