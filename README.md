@@ -32,6 +32,8 @@ npm run dev
 
 動作確認: http://localhost:3000/api/health が `{"status":"ok","database":"ok"}` を返せば、DB に接続できています。
 
+開発サーバーでページの再読み込みが止まらなくなったとき(ターミナルに「✓ Compiled in 1ms」と GET が繰り返し出る): 開発サーバーを止めて `.next/dev` フォルダを消し、もう一度 `npm run dev` で起動する。`.next/dev` は開発サーバーが作り直すキャッシュなので、消しても問題ない。
+
 ## npm scripts
 
 | コマンド | 内容 |

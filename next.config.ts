@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
       // 完成写真(5MB まで)をフォームと一緒に Server Action で受け取るため、上限を少し大きくする
       bodySizeLimit: "6mb",
     },
+    // 開発用の Turbopack のファイルキャッシュ(再起動の間も残る)を使わない。
+    // 有効だと、開発サーバーの再起動後にブラウザの再読み込みが止まらなくなることがあった(Issue #23)
+    turbopackFileSystemCacheForDev: false,
   },
 };
 
