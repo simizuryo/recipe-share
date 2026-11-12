@@ -23,7 +23,8 @@ export function LoginForm() {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "");
     if (!email || !password) {
@@ -43,6 +44,8 @@ export function LoginForm() {
         );
         return;
       }
+      // Next.js は移動前の画面を非表示のまま保持するので、入力したパスワードを残さないよう空にする
+      form.reset();
       router.replace(next);
       router.refresh();
     });
