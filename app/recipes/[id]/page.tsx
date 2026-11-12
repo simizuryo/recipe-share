@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { DeleteRecipeButton } from "@/components/recipe/delete-recipe-button";
+import { FavoriteButton } from "@/components/recipe/favorite-button";
 import ownerStyles from "@/components/recipe/recipe-owner-actions.module.css";
 import { CATEGORY_LABELS } from "@/lib/category";
+import { isFavorited } from "@/lib/services/favorites";
 import { getRecipeDetail, type RecipeDetail } from "@/lib/services/recipes";
 import { getCurrentUser } from "@/lib/session";
 import { parseRecipeId } from "@/lib/validation/recipe";
@@ -26,7 +28,7 @@ export async function generateMetadata({ params }: PageProps<"/recipes/[id]">): 
   return { title: `${recipe ? recipe.title : "レシピが見つかりません"} | recipe-share` };
 }
 
-// S-04 レシピ詳細(F-06)。お気に入りボタン・完成写真・コメントは各機能で追加する
+// S-04 レシピ詳細(F-06)。完成写真・コメントは各機能で追加する
 export default async function RecipePage({ params }: PageProps<"/recipes/[id]">) {
   const id = parseRecipeId((await params).id);
   if (id === null) notFound();
@@ -49,10 +51,19 @@ export default async function RecipePage({ params }: PageProps<"/recipes/[id]">)
           <span>
             <span aria-hidden>⏱</span> {recipe.cookMinutes}分
           </span>
-          <span>
-            <span aria-hidden>♡</span> お気に入り {recipe._count.favorites}
-          </span>
         </p>
+        {/* お気に入りボタン(F-08)。ログイン状態で変わるので後から読み込み、それまでは件数だけ出す */}
+        <div className={styles.favorite}>
+          <Suspense
+            fallback={
+              <span className={styles.favoriteFallback}>
+                <span aria-hidden>♡</span> お気に入り {recipe._count.favorites}
+              </span>
+            }
+          >
+            <Favorite recipe={recipe} />
+          </Suspense>
+        </div>
         <p className={styles.meta}>
           <span>
             投稿 <time dateTime={recipe.createdAt.toISOString()}>{formatDate(recipe.createdAt)}</time>
@@ -95,6 +106,20 @@ export default async function RecipePage({ params }: PageProps<"/recipes/[id]">)
         </section>
       </article>
     </main>
+  );
+}
+
+async function Favorite({ recipe }: { recipe: RecipeDetail }) {
+  const user = await getCurrentUser();
+  const favorited = user ? await isFavorited(user.id, recipe.id) : false;
+  return (
+    <FavoriteButton
+      recipeId={recipe.id}
+      favorited={favorited}
+      count={recipe._count.favorites}
+      signedIn={user !== null}
+      returnTo={`/recipes/${recipe.id}`}
+    />
   );
 }
 

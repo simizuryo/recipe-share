@@ -14,6 +14,7 @@ import {
   type RecipeSearch,
 } from "@/lib/search/recipe-search";
 import { listRecipes } from "@/lib/services/recipes";
+import { getCurrentUser } from "@/lib/session";
 
 import styles from "./page.module.css";
 
@@ -33,7 +34,10 @@ export default function Home({ searchParams }: PageProps<"/">) {
 async function RecipeResults({ search }: { search: RecipeSearch }) {
   const query = recipeSearchToQuery(search);
   const filtered = hasSearchCondition(search);
-  const { items, nextCursor } = await listRecipes(search);
+  const user = await getCurrentUser();
+  const { items, nextCursor } = await listRecipes(search, null, user?.id ?? null);
+  // ゲストがお気に入りボタンからログインしたら、同じ検索条件の一覧に戻す
+  const viewer = { signedIn: user !== null, returnTo: query === "" ? "/" : `/?${query}` };
 
   return (
     <>
@@ -50,10 +54,10 @@ async function RecipeResults({ search }: { search: RecipeSearch }) {
         <>
           <ul className={listStyles.list} aria-label="レシピ一覧">
             {items.map((recipe) => (
-              <RecipeCard key={recipe.id} recipe={recipe} />
+              <RecipeCard key={recipe.id} recipe={recipe} viewer={viewer} />
             ))}
           </ul>
-          {nextCursor && <LoadMoreRecipes key={query} query={query} initialCursor={nextCursor} />}
+          {nextCursor && <LoadMoreRecipes key={query} query={query} initialCursor={nextCursor} viewer={viewer} />}
         </>
       )}
     </>

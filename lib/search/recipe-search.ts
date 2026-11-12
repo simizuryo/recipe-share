@@ -112,3 +112,13 @@ export function afterCursorWhere(cursor: RecipeCursor): Prisma.RecipeWhereInput 
     OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: cursor.id } }],
   };
 }
+
+/**
+ * お気に入り一覧(F-08)で、カーソルより後(先に保存した)ものだけにする条件。
+ * お気に入り一覧のカーソルは「保存日時_レシピ ID」(同じ形式の文字列を使い回す)。
+ */
+export function afterFavoriteCursorWhere(cursor: RecipeCursor): Prisma.FavoriteWhereInput {
+  return {
+    OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, recipeId: { lt: cursor.id } }],
+  };
+}
