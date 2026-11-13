@@ -3,6 +3,7 @@ import { connection, type NextRequest } from "next/server";
 import { decodeCursor, parseRecipeSearch } from "@/lib/search/recipe-search";
 import { listRecipes } from "@/lib/services/recipes";
 import { getCurrentUser } from "@/lib/session";
+import { logger } from "@/lib/logger";
 
 /**
  * 「もっと見る」で続きのレシピを返す(F-05 / F-07)。ゲストも使える。
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUser();
     return Response.json(await listRecipes(parseRecipeSearch(params), cursor, user?.id ?? null));
   } catch (error) {
-    console.error("レシピ一覧の取得に失敗しました", error instanceof Error ? error.message : error);
+    logger.error("レシピ一覧の取得に失敗しました", { error });
     return Response.json({ error: "読み込めませんでした" }, { status: 500 });
   }
 }

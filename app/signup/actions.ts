@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth";
 import { safeNextPath } from "@/lib/auth-redirect";
 import { findTakenSignUpFields } from "@/lib/services/users";
 import { signUpSchema, type SignUpField } from "@/lib/validation/auth";
+import { logger } from "@/lib/logger";
 
 export type SignUpState = {
   /** エラー時に入力欄へ戻す値(パスワードは戻さない) */
@@ -50,7 +51,7 @@ export async function signUp(_prev: SignUpState, formData: FormData): Promise<Si
     const raceErrors = await checkTaken(input.username, input.email);
     if (raceErrors) return { values, errors: raceErrors };
     // 入力値(パスワード)はログに出さない
-    console.error("ユーザー登録に失敗しました", error instanceof Error ? error.message : error);
+    logger.error("ユーザー登録に失敗しました", { error });
     return { values, errors: { form: ["登録できませんでした。時間をおいてやり直してください"] } };
   }
 

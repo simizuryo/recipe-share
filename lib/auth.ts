@@ -5,6 +5,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 
 import { getDb } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 /**
  * 認証の設定(docs/requirements/02-non-functional-requirements.md 6.1)
@@ -39,6 +40,13 @@ export const auth = betterAuth({
     customRules: {
       // ログインは同じ接続元から 1分 10回まで(総当たり対策)
       "/sign-in/email": { window: 60, max: 10 },
+    },
+  },
+  // Better Auth 自身のログ(内部エラーなど)も同じ JSON 形式で書き出す。秘密のキーは logger が伏せる
+  logger: {
+    level: "warn",
+    log: (level, message, ...args) => {
+      logger[level](`[better-auth] ${message}`, args.length > 0 ? { details: args } : undefined);
     },
   },
   // Server Actions からログイン・ログアウトしたときも Cookie を書き込めるようにする(最後に置く)

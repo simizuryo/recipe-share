@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 import { decodeCursor } from "@/lib/search/recipe-search";
 import { listFavorites } from "@/lib/services/favorites";
 import { getCurrentUser } from "@/lib/session";
+import { logger } from "@/lib/logger";
 
 /**
  * お気に入り一覧の「もっと見る」(F-08 / S-07)。本人の分だけを返すので、ログインが必要。
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
   try {
     return Response.json(await listFavorites(user.id, cursor));
   } catch (error) {
-    console.error("お気に入り一覧の取得に失敗しました", error instanceof Error ? error.message : error);
+    logger.error("お気に入り一覧の取得に失敗しました", { userId: user.id, error });
     return Response.json({ error: "読み込めませんでした" }, { status: 500 });
   }
 }

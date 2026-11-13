@@ -42,13 +42,48 @@ npm run dev
 | `npm run build` / `npm start` | 本番ビルド / 起動 |
 | `npm run typecheck` | 型チェック(`next typegen` で Next.js のルートの型を作ってから `tsc --noEmit`) |
 | `npm run lint` | ESLint |
-| `npm test` | 単体テスト(Vitest、`tests/unit/`) |
+| `npm test` | 単体テスト(Vitest、`tests/unit/`。DB 不要) |
+| `npm run test:integration` | 統合テスト(Vitest、`tests/integration/`。service 層を本物の PostgreSQL で確かめる) |
+| `npm run test:e2e` | E2E テスト(Playwright、`tests/e2e/`。ブラウザで投稿 → 検索 → お気に入りの流れを確かめる) |
 | `npm run db:migrate` | スキーマの変更からマイグレーションを作って適用する(開発用) |
 | `npm run db:deploy` | 作成済みのマイグレーションを適用する(本番用) |
 | `npm run db:studio` | DB の中身をブラウザで見る(Prisma Studio) |
 | `npm run storage:init` | 写真の保存先のバケットを作る(ローカルの RustFS。すでにあれば何もしない) |
 
-Pull Request では GitHub Actions が typecheck・lint・test・build を実行する。
+Pull Request では GitHub Actions が typecheck・lint・単体テスト・build と、統合テスト(PostgreSQL のサービスコンテナを使う)を実行する。E2E テストは手元で実行する。
+
+## テスト
+
+| 種類 | 場所 | 対象 | 使うもの |
+|---|---|---|---|
+| 単体 | `tests/unit/` | 入力検証、検索条件の組み立て、写真の形式判定、戻り先の判定、ログの伏せ字 | なし |
+| 統合 | `tests/integration/` | `lib/services/` のレシピ投稿・編集・削除(本人以外は forbidden、存在しなければ not_found、写真のキー)、お気に入り(冪等・同時操作・削除済み)、一覧・検索・「もっと見る」の続き、登録時の重複確認 | PostgreSQL |
+| E2E | `tests/e2e/` | 登録 → 写真付きで投稿 → ゲストのお気に入りはログインへ → 別ユーザーで登録 → 検索 → お気に入りの保存・一覧・解除 → 他人のレシピは編集できない | PostgreSQL・RustFS・ブラウザ |
+
+```sh
+docker compose up -d          # 統合・E2E の前に DB と写真の保存先を起動する
+npm test                      # 単体
+npm run test:integration      # 統合
+npx playwright install chromium   # E2E の初回だけ(ブラウザを入れる)
+npm run test:e2e              # E2E(本番ビルドを作ってポート 3100 で起動してから実行する。数分かかる)
+```
+
+- 統合テストは `recipe_share_test`、E2E は `recipe_share_e2e_test` データベースを使う(なければ自動で作り、マイグレーションを当てる)。テストのたびに中身を消すが、開発用の `recipe_share` には触らない。データベース名が `_test` で終わらない接続先では動かないようにしてある。接続先は `TEST_DATABASE_URL` / `E2E_DATABASE_URL` で変えられる。
+- E2E の写真は `recipe-share-e2e` バケットに保存する(自動で作る)。失敗したときは `playwright-report/` と `test-results/`(スクリーンショット・トレース)を見る。
+
+## ログ
+
+サーバーのログは `lib/logger.ts` で、1件を JSON 1行で書き出す(Vercel のログ画面で検索しやすくするため)。
+
+```json
+{"time":"2026-11-13T13:05:03.046Z","level":"error","msg":"レシピの保存に失敗しました","userId":3,"error":{"name":"Error","message":"…","stack":"…"}}
+```
+
+- `logger.error("メッセージ", { userId, recipeId, error })` のように、メッセージと項目を分けて渡す。Error は name・message・stack・cause に展開される。
+- **パスワード・トークン・Cookie・秘密鍵などはキー名で判断して `[REDACTED]` に置き換える**(`password`・`token`・`secret`・`cookie`・`authorization`・`apiKey` などを含むキー)。秘密の値は分かる名前のキーで渡すこと。
+- 捕まえられなかったエラー(画面の描画・Route Handler・Server Actions)は `instrumentation.ts` の `onRequestError` で記録する。リクエストのヘッダー(Cookie)とクエリ文字列は書き出さない。
+- Better Auth 自身のログ(warn 以上)も同じ形式で書き出す。
+- 出力するレベルは環境変数 `LOG_LEVEL`(`debug` / `info` / `warn` / `error` / `silent`、既定は `info`)。error・warn は標準エラー、それ以外は標準出力に出る。
 
 ## ディレクトリ構成
 
@@ -59,7 +94,8 @@ Pull Request では GitHub Actions が typecheck・lint・test・build を実行
 | `lib/generated/` | Prisma が生成するコード(コミットしない) |
 | `scripts/` | 開発用のスクリプト(`create-bucket.mjs` は写真の保存先のバケットを作る) |
 | `prisma/` | スキーマとマイグレーション |
-| `tests/unit/` | 単体テスト |
+| `tests/` | テスト(`unit/` 単体、`integration/` 統合、`e2e/` E2E、`support/` テスト用の共通処理) |
+| `instrumentation.ts` | 想定外のエラーをログに残す(Next.js の `onRequestError`) |
 | `docs/` | 要件定義書 |
 
 ## 開発ルール

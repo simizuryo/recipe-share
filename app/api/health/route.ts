@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 
 import { getDb } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 /** 動作確認用: アプリが動いていて DB に接続できるかを返す */
 export async function GET() {
@@ -10,7 +11,7 @@ export async function GET() {
     await getDb().$queryRaw`SELECT 1`;
     return Response.json({ status: "ok", database: "ok" });
   } catch (error) {
-    console.error("health check: database error", error);
+    logger.error("ヘルスチェック: DB に接続できません", { error });
     return Response.json({ status: "error", database: "unreachable" }, { status: 503 });
   }
 }

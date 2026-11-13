@@ -37,8 +37,10 @@
 
 ### 6.5 保守性・品質
 - 画面・Server Actions(`app/`)、業務ルール(`lib/services/`)、DB アクセス(Prisma)の層に分ける。TypeScript は `strict: true` とし、`any` を使わない。
-- 編集・削除の権限確認、入力検証、検索条件の組み立てには単体テストを書く。
-- GitHub Actions で Pull Request ごとに型チェック・ESLint・Vitest・ビルドを実行する。
+- 入力検証、検索条件の組み立てには単体テストを書く。編集・削除の権限確認、お気に入り、一覧・検索は、本物の PostgreSQL につなぐ統合テストで確かめる(行ロック・SQL の条件まで含めて確かめるため)。
+- 投稿 → 検索 → お気に入りの一連の流れは Playwright の E2E テストで確かめる(手元で実行)。
+- GitHub Actions で Pull Request ごとに型チェック・ESLint・単体テスト・ビルドと、統合テスト(PostgreSQL のサービスコンテナ)を実行する。
+- サーバーのログは JSON 1行形式で書き出し、パスワード・トークン・Cookie などのキーの値は伏せる(`lib/logger.ts`)。捕まえられなかったエラーは `instrumentation.ts` の `onRequestError` で記録する。
 - Server Actions の失敗は `{ ok: false, code, message }` の形に統一し、原因(入力エラー / 未ログイン / 権限なし / 存在しない / 重複 / サーバーエラー)を区別できるようにする。存在しないレシピのページは 404 を返す。想定外のエラーは画面にエラー表示を出し、詳細はサーバーのログにだけ残す。
 
 ### 6.6 運用

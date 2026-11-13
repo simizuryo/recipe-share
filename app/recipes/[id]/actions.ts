@@ -7,6 +7,7 @@ import { deleteRecipe, type RecipeWriteOutcome } from "@/lib/services/recipes";
 import { requireUser } from "@/lib/session";
 import { deleteImageQuietly } from "@/lib/storage";
 import { parseRecipeId } from "@/lib/validation/recipe";
+import { logger } from "@/lib/logger";
 
 export type DeleteRecipeState = { error?: string };
 
@@ -23,12 +24,12 @@ export async function deleteRecipeAction(recipeId: unknown): Promise<DeleteRecip
   try {
     outcome = await deleteRecipe(user.id, id);
   } catch (error) {
-    console.error("レシピの削除に失敗しました", error instanceof Error ? error.message : error);
+    logger.error("レシピの削除に失敗しました", { userId: user.id, recipeId: id, error });
     return { error: "削除できませんでした。時間をおいてやり直してください" };
   }
   const { result } = outcome;
   if (result === "forbidden") {
-    console.warn("他人のレシピを削除しようとしました", { userId: user.id, recipeId: id });
+    logger.warn("他人のレシピを削除しようとしました", { userId: user.id, recipeId: id });
     return { error: "このレシピを削除する権限がありません" };
   }
   // not_found は、別のタブで先に削除した場合など。目的の状態にはなっているのでトップへ移動する

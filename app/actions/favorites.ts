@@ -3,6 +3,7 @@
 import { setFavorite } from "@/lib/services/favorites";
 import { requireUser } from "@/lib/session";
 import { parseRecipeId } from "@/lib/validation/recipe";
+import { logger } from "@/lib/logger";
 
 export type SetFavoriteResult = { ok: true; favorited: boolean; count: number } | { ok: false; error: string };
 
@@ -26,7 +27,7 @@ export async function setFavoriteAction(
     if (result === "not_found") return { ok: false, error: "このレシピは削除されました" };
     return { ok: true, ...result };
   } catch (error) {
-    console.error("お気に入りの更新に失敗しました", error instanceof Error ? error.message : error);
+    logger.error("お気に入りの更新に失敗しました", { userId: user.id, recipeId: id, favorited, error });
     return { ok: false, error: "保存できませんでした。時間をおいてやり直してください" };
   }
 }
