@@ -3,15 +3,13 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
-import { loginUrl, safeNextPath, signupUrl } from "@/lib/auth-redirect";
+import { loginUrl, returnToFromLocation, signupUrl } from "@/lib/auth-redirect";
 
 import styles from "./header.module.css";
 
-/** ゲスト向けのリンク。ログイン・登録の後は今いる画面に戻る */
+/** ゲスト向けのリンク。ログイン・登録の後は今いる画面に戻る(ログイン・登録画面では、その画面の戻り先を引き継ぐ) */
 export function GuestLinks() {
-  const pathname = usePathname();
-  const query = useSearchParams().toString();
-  const current = safeNextPath(query ? `${pathname}?${query}` : pathname);
+  const current = returnToFromLocation(usePathname(), useSearchParams());
 
   return (
     <>

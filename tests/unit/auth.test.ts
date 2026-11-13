@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { loginUrl, safeNextPath, signupUrl } from "@/lib/auth-redirect";
+import { loginUrl, returnToFromLocation, safeNextPath, signupUrl } from "@/lib/auth-redirect";
 import { signUpSchema } from "@/lib/validation/auth";
 
 const valid = {
@@ -82,6 +82,32 @@ describe("safeNextPath", () => {
 
   it("/loginx のように名前が似ているだけのパスは通す", () => {
     expect(safeNextPath("/loginx")).toBe("/loginx");
+  });
+});
+
+describe("returnToFromLocation", () => {
+  const at = (pathname: string, query = "") => returnToFromLocation(pathname, new URLSearchParams(query));
+
+  it("ふつうの画面では、今いるパスとクエリを返す", () => {
+    expect(at("/recipes/1")).toBe("/recipes/1");
+    expect(at("/", "q=カレー&category=MAIN")).toBe("/?q=%E3%82%AB%E3%83%AC%E3%83%BC&category=MAIN");
+  });
+
+  it("ログイン・登録画面では、その画面の next を引き継ぐ", () => {
+    expect(at("/login", "next=/recipes/1")).toBe("/recipes/1");
+    expect(at("/signup", "next=%2Fme%2Ffavorites")).toBe("/me/favorites");
+    expect(signupUrl(at("/login", "next=/recipes/1"))).toBe("/signup?next=%2Frecipes%2F1");
+    expect(loginUrl(at("/signup", "next=/recipes/1"))).toBe("/login?next=%2Frecipes%2F1");
+  });
+
+  it("ログイン・登録画面で next がない・不正なら / にする", () => {
+    expect(at("/login")).toBe("/");
+    expect(at("/login", "next=https://evil.example")).toBe("/");
+    expect(at("/signup", "next=/login?next=/x")).toBe("/");
+  });
+
+  it("名前が似ているだけの画面は、ふつうの画面として扱う", () => {
+    expect(at("/loginx", "next=/recipes/1")).toBe("/loginx?next=%2Frecipes%2F1");
   });
 });
 

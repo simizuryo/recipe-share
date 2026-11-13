@@ -14,6 +14,17 @@ export function safeNextPath(value: unknown): string {
   return value;
 }
 
+/**
+ * ヘッダーのログイン・登録リンクに付ける戻り先。今いる画面(パス + クエリ)を返す。
+ * ただし今いるのがログイン・登録画面なら、その画面の ?next= を引き継ぐ
+ * (ログイン画面から登録画面へ移っても、登録後に元の画面へ戻れるように)。
+ */
+export function returnToFromLocation(pathname: string, search: URLSearchParams): string {
+  if (/^\/(login|signup)\/?$/.test(pathname)) return safeNextPath(search.get("next"));
+  const query = search.toString();
+  return safeNextPath(query ? `${pathname}?${query}` : pathname);
+}
+
 /** ログイン画面の URL。ログイン後に returnTo へ戻る */
 export function loginUrl(returnTo: string): string {
   return withNext("/login", returnTo);
