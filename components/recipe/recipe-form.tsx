@@ -180,7 +180,7 @@ export function RecipeForm({
             aria-describedby="image-hint"
           />
           <span id="image-hint" className={styles.hint}>
-            JPEG・PNG・WebP、5MB まで。{currentImageUrl ? "新しい写真を選ぶと差し替えます" : "なくても投稿できます"}
+            JPEG・PNG・WebP、4MB まで。{currentImageUrl ? "新しい写真を選ぶと差し替えます" : "なくても投稿できます"}
           </span>
           {currentImageUrl && !photo.previewUrl && (
             <label className={styles.checkbox}>

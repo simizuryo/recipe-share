@@ -3,8 +3,11 @@
  * 形式は拡張子や Content-Type ではなく、ファイルの先頭のバイト(マジックナンバー)で確かめる。
  */
 
-/** 写真の上限サイズ(5MB) */
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+/**
+ * 写真の上限サイズ(4MB)。
+ * 本番の Vercel は関数が受け取るリクエスト本体が 4.5MB までなので、フォームの文字(最大でも数十KB)と合わせて収まる 4MB にする(Issue #29)。
+ */
+export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
 /** ファイル選択欄の accept 属性 */
 export const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp";
@@ -28,7 +31,7 @@ export const IMAGE_HEADER_BYTES = 12;
 
 export const IMAGE_ERRORS = {
   type: "写真は JPEG・PNG・WebP の画像を選んでください",
-  size: "写真は 5MB 以下にしてください",
+  size: "写真は 4MB 以下にしてください",
   empty: "写真のファイルが空です",
 } as const;
 

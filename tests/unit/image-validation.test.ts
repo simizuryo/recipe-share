@@ -36,11 +36,17 @@ describe("detectImageType", () => {
 });
 
 describe("checkImage", () => {
-  it("5MB ちょうどまでは受け付ける", () => {
+  it("上限は 4MB で、フォームの文字と合わせても Vercel のリクエスト上限(4.5MB)に収まる", () => {
+    expect(MAX_IMAGE_BYTES).toBe(4 * 1024 * 1024);
+    // フォームの文字は最大でも数十KB。余裕を見て 200KB を足しても 4.5MB(10進)以下
+    expect(MAX_IMAGE_BYTES + 200_000).toBeLessThanOrEqual(4_500_000);
+  });
+
+  it("4MB ちょうどまでは受け付ける", () => {
     expect(checkImage(MAX_IMAGE_BYTES, PNG)).toEqual({ ok: true, type: "png" });
   });
 
-  it("5MB を超えるものは、形式が正しくても受け付けない", () => {
+  it("4MB を超えるものは、形式が正しくても受け付けない", () => {
     expect(checkImage(MAX_IMAGE_BYTES + 1, JPEG)).toEqual({ ok: false, error: IMAGE_ERRORS.size });
   });
 
@@ -98,7 +104,7 @@ describe("readImageField", () => {
     expect(await readImageField(form([["image", fake]]))).toEqual({ ok: false, error: IMAGE_ERRORS.type });
   });
 
-  it("5MB を超えるファイルはエラー", async () => {
+  it("4MB を超えるファイルはエラー", async () => {
     const big = new File([JPEG, new Uint8Array(MAX_IMAGE_BYTES)], "big.jpg", { type: "image/jpeg" });
     expect(await readImageField(form([["image", big]]))).toEqual({ ok: false, error: IMAGE_ERRORS.size });
   });

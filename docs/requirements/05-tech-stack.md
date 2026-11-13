@@ -53,7 +53,7 @@ flowchart LR
 ### 11.4 データベース・ストレージ・開発環境
 - PostgreSQL 16(`docker-compose.yml` でローカル起動。イメージ `postgres:16`)。他アプリの DB と同時に起動できるよう、ホスト側ポートは 5434 を使う。拡張機能 `pg_trgm` は Prisma のマイグレーション SQL で有効にする。
 - 画像ストレージ: ローカルは S3 互換の RustFS(`rustfs/rustfs:1.0.1`)。本番は Supabase Storage(S3 互換 API)。アプリのコードは共通で、接続先の設定だけ切り替える。
-- 画像アップロードは Server Actions で受け取るため、`next.config` の `serverActions.bodySizeLimit` を写真の上限(5MB)より少し大きい値にする。
+- 画像アップロードは Server Actions で受け取るため、`next.config` の `serverActions.bodySizeLimit` を写真の上限(4MB)より少し大きい値(4.5mb)にする。写真の上限は、Vercel の関数が受け取れるリクエスト本体の上限 4.5MB に収まるよう 4MB にした(Issue #29)。
 - CI: GitHub Actions(型チェック `tsc --noEmit`、ESLint、単体テスト、ビルド、統合テスト)。統合テストは PostgreSQL のサービスコンテナを使う。E2E テストは手元で実行する。
 
 ### 11.5 本番環境(デモ環境)

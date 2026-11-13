@@ -10,8 +10,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      // 完成写真(5MB まで)をフォームと一緒に Server Action で受け取るため、上限を少し大きくする
-      bodySizeLimit: "6mb",
+      // 完成写真(4MB まで)をフォームと一緒に Server Action で受け取るため、上限を少し大きくする。
+      // 写真 4MB + フォームの文字(最大でも数十KB)が収まる値。本番の Vercel ではリクエスト本体が 4.5MB までに制限される
+      bodySizeLimit: "4.5mb",
     },
     // 開発用の Turbopack のファイルキャッシュ(再起動の間も残る)を使わない。
     // 有効だと、開発サーバーの再起動後にブラウザの再読み込みが止まらなくなることがあった(Issue #23)
