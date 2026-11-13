@@ -7,6 +7,7 @@ import { type ImageChange, updateRecipe, type RecipeWriteOutcome, type RecipeWri
 import { requireUser } from "@/lib/session";
 import { deleteImageQuietly, newImageKey, putImage } from "@/lib/storage";
 import { readImageField } from "@/lib/validation/image";
+import { logger } from "@/lib/logger";
 import {
   parseRecipeId,
   readRecipeForm,
@@ -62,14 +63,14 @@ export async function updateRecipeAction(
     }
     outcome = await updateRecipe(user.id, id, parsed.data, change);
   } catch (error) {
-    console.error("レシピの更新に失敗しました", error instanceof Error ? error.message : error);
+    logger.error("レシピの更新に失敗しました", { userId: user.id, recipeId: id, error });
     await deleteImageQuietly(newKey, "レシピの更新に失敗したため");
     return { values, errors: { form: "保存できませんでした。時間をおいてやり直してください" } };
   }
   const result: RecipeWriteResult = outcome.result;
   if (result !== "ok") {
     await deleteImageQuietly(newKey, `レシピを更新できなかったため(${result})`);
-    if (result === "forbidden") console.warn("他人のレシピを編集しようとしました", { userId: user.id, recipeId: id });
+    if (result === "forbidden") logger.warn("他人のレシピを編集しようとしました", { userId: user.id, recipeId: id });
     return { values, errors: { form: WRITE_ERRORS[result] } };
   }
 

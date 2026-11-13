@@ -42,9 +42,9 @@ flowchart LR
 | ESLint / eslint-config-next | 10.14.0 / 16.4.5 | Lint(Next.js 推奨ルール) |
 | @types/node / @types/react / @types/react-dom | 24.19.2 / 19.3.0 / 19.3.0 | 型定義 |
 | dotenv | 18.0.9 | Prisma CLI に `.env` を読ませる(`prisma.config.ts`) |
-| Vitest | 5.1.0 | 単体テスト(service 層・入力検証) |
+| Vitest | 5.1.0 | 単体テスト(入力検証・検索条件)と統合テスト(service 層を本物の PostgreSQL で) |
 | @testing-library/react | 16.3.3 | 画面部品のテスト(必要になったときに導入) |
-| @playwright/test | 1.65.0 | E2E テスト(投稿 → 検索 → お気に入りの一連の流れ。6日目に導入) |
+| @playwright/test | 1.65.0 | E2E テスト(投稿 → 検索 → お気に入りの一連の流れ。Issue #25 で導入) |
 
 - バージョンは 2026-11-08 時点の安定版。環境構築(Issue #7)で組み合わせて動くことを確認し、`.npmrc` の `save-exact=true` と `package-lock.json` で固定した(`^` を付けない)。
 - 型チェックは `next typegen && tsc --noEmit`(Next.js がルートの型 `PageProps` / `LayoutProps` などを生成してから確認する)。
@@ -54,7 +54,7 @@ flowchart LR
 - PostgreSQL 16(`docker-compose.yml` でローカル起動。イメージ `postgres:16`)。他アプリの DB と同時に起動できるよう、ホスト側ポートは 5434 を使う。拡張機能 `pg_trgm` は Prisma のマイグレーション SQL で有効にする。
 - 画像ストレージ: ローカルは S3 互換の RustFS(`rustfs/rustfs:1.0.1`)。本番は Supabase Storage(S3 互換 API)。アプリのコードは共通で、接続先の設定だけ切り替える。
 - 画像アップロードは Server Actions で受け取るため、`next.config` の `serverActions.bodySizeLimit` を写真の上限(5MB)より少し大きい値にする。
-- CI: GitHub Actions(型チェック `tsc --noEmit`、ESLint、Vitest、ビルド)。E2E テストは手元で実行する。
+- CI: GitHub Actions(型チェック `tsc --noEmit`、ESLint、単体テスト、ビルド、統合テスト)。統合テストは PostgreSQL のサービスコンテナを使う。E2E テストは手元で実行する。
 
 ### 11.5 本番環境(デモ環境)
 | 役割 | サービス | プラン |

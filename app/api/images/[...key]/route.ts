@@ -2,6 +2,7 @@ import { connection, type NextRequest } from "next/server";
 
 import { getImage } from "@/lib/storage";
 import { isImageKey } from "@/lib/validation/image";
+import { logger } from "@/lib/logger";
 
 /**
  * 完成写真を返す(F-09)。ゲストも見られる。
@@ -29,7 +30,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext<"/api/
       },
     });
   } catch (error) {
-    console.error("写真の読み出しに失敗しました", { key, error: error instanceof Error ? error.message : error });
+    logger.error("写真の読み出しに失敗しました", { key, error });
     return new Response("Internal Server Error", { status: 500 });
   }
 }

@@ -12,6 +12,7 @@ import {
 } from "@aws-sdk/client-s3";
 
 import { IMAGE_CONTENT_TYPES, IMAGE_EXTENSIONS, type ImageType } from "@/lib/validation/image";
+import { logger } from "@/lib/logger";
 
 /**
  * 完成写真(F-09)の保存先。S3 互換 API で読み書きする。
@@ -91,6 +92,6 @@ export async function deleteImageQuietly(key: string | null | undefined, reason:
   try {
     await getClient().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }));
   } catch (error) {
-    console.error("写真ファイルの削除に失敗しました", { key, reason, error: error instanceof Error ? error.message : error });
+    logger.error("写真ファイルの削除に失敗しました", { key, reason, error });
   }
 }

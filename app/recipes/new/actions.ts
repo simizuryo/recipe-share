@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/session";
 import { deleteImageQuietly, newImageKey, putImage } from "@/lib/storage";
 import { readImageField } from "@/lib/validation/image";
 import { readRecipeForm, recipeFieldErrors, recipeSchema, type RecipeFormState } from "@/lib/validation/recipe";
+import { logger } from "@/lib/logger";
 
 const SAVE_ERROR = "保存できませんでした。時間をおいてやり直してください";
 
@@ -37,7 +38,7 @@ export async function createRecipeAction(_prev: RecipeFormState, formData: FormD
     }
     ({ id: recipeId } = await createRecipe(user.id, parsed.data, imageKey));
   } catch (error) {
-    console.error("レシピの保存に失敗しました", error instanceof Error ? error.message : error);
+    logger.error("レシピの保存に失敗しました", { userId: user.id, error });
     await deleteImageQuietly(imageKey, "レシピの保存に失敗したため");
     return { values, errors: { form: SAVE_ERROR } };
   }
