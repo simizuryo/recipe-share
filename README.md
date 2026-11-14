@@ -85,12 +85,53 @@ npm run test:e2e              # E2E(本番ビルドを作ってポート 3100 �
 - Better Auth 自身のログ(warn 以上)も同じ形式で書き出す。
 - 出力するレベルは環境変数 `LOG_LEVEL`(`debug` / `info` / `warn` / `error` / `silent`、既定は `info`)。error・warn は標準エラー、それ以外は標準出力に出る。
 
+## デプロイ(Vercel + Supabase)
+
+本番は Vercel(アプリ)+ Supabase(PostgreSQL と写真の保存先)。どちらも東京リージョンに置く(`vercel.json` で関数を `hnd1` に固定)。
+
+### 1. Supabase
+
+1. プロジェクトを作る(Region: Northeast Asia (Tokyo))。DB のパスワードは生成したものを控える。
+2. Storage で**非公開**のバケット `recipe-share-images` を作る(Public bucket はオフ。写真はアプリの `/api/images/` から配信する)。
+3. Storage の S3 の設定画面で Endpoint・Region を控え、S3 Access Keys で鍵を作る(Secret は作成時にしか表示されない)。
+4. Connect → Connection String で接続文字列を控える。
+   - **Transaction pooler(ポート 6543)**: アプリ(Vercel)の `DATABASE_URL` に使う
+   - **Session pooler(ポート 5432)**: ローカルからのマイグレーションに使う
+   - Direct connection は IPv6 専用なので使わない
+   - **`?sslmode=...` は付けない。** 付けると pg が下記の TLS 設定を上書きする
+
+DB との通信は Supabase の認証局(Supabase Root 2021 CA)で証明書を検証して暗号化する。この認証局は Node.js に入っていないため、証明書を `lib/db-ssl.ts` に持たせ、接続先が `*.supabase.com` / `*.supabase.co` のときだけ使う(ローカルの DB では TLS を使わない)。証明書の有効期限は 2031-04-26。
+
+### 2. 本番 DB のマイグレーション(ローカルから)
+
+```sh
+DATABASE_URL="<Session pooler の接続文字列>" npx prisma migrate deploy
+```
+
+### 3. Vercel
+
+GitHub のリポジトリを読み込み(Framework: Next.js、設定は既定のまま)、環境変数を Production に設定してデプロイする。
+
+| 変数 | 値 |
+|---|---|
+| `DATABASE_URL` | Transaction pooler(ポート 6543)の接続文字列 |
+| `BETTER_AUTH_SECRET` | 32 文字以上のランダムな文字列(ローカルとは別の値) |
+| `BETTER_AUTH_URL` | 本番の URL(例: `https://recipe-share-xxx.vercel.app`) |
+| `S3_ENDPOINT` | `https://<プロジェクトID>.storage.supabase.co/storage/v1/s3` |
+| `S3_REGION` | `ap-northeast-1` |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | Supabase の S3 Access Keys |
+| `S3_BUCKET` | `recipe-share-images` |
+
+- 環境変数を変えたら再デプロイする(すでに動いているデプロイには反映されない)。
+- 写真の上限 4MB は Vercel の関数のリクエスト本体の上限(4.5MB)に合わせている。
+- 新しいマイグレーションを追加したら、デプロイの前に手順 2 を実行する。
+
 ## ディレクトリ構成
 
 | 場所 | 内容 |
 |---|---|
 | `app/` | 画面と Server Actions、Route Handler(`app/api/auth` は Better Auth、`app/api/health` は動作確認用) |
-| `lib/` | 共通の処理(`db.ts` は Prisma Client、`auth.ts` は認証の設定、`storage.ts` は写真の保存先)。業務ルールは `lib/services/` に置く |
+| `lib/` | 共通の処理(`db.ts` は Prisma Client、`db-ssl.ts` は本番 DB の TLS 設定、`auth.ts` は認証の設定、`storage.ts` は写真の保存先)。業務ルールは `lib/services/` に置く |
 | `lib/generated/` | Prisma が生成するコード(コミットしない) |
 | `scripts/` | 開発用のスクリプト(`create-bucket.mjs` は写真の保存先のバケットを作る) |
 | `prisma/` | スキーマとマイグレーション |
