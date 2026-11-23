@@ -2,6 +2,8 @@
 
 システムの全体像とデータ構造を図でまとめる。詳しい方針は [技術スタック](requirements/05-tech-stack.md)、テーブルの定義は [データモデル](requirements/03-data-model.md) と `prisma/schema.prisma`(こちらが正)を参照。
 
+> README の「構成」にも同じ図を載せている。図を変えるときは両方を直すこと。
+
 ## 1. システム構成(本番)
 
 アプリは Vercel、DB と写真の保存先は Supabase。どちらも東京リージョンに置く。
