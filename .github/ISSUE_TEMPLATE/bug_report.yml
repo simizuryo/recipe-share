@@ -1,0 +1,49 @@
+name: バグ報告
+description: 期待どおりに動かないことを報告する
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: 何が起きているか
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      placeholder: |
+        1. /recipes/new を開く
+        2. 5MB の写真を選んで「投稿する」を押す
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動き
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動き
+      description: エラーメッセージ・スクリーンショット・ログ(JSON 1 行)があれば貼る。パスワードや Cookie は貼らない
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 環境
+      options:
+        - 本番(Vercel)
+        - ローカル(npm run dev)
+        - テスト(CI / 統合 / E2E)
+    validations:
+      required: true
+  - type: input
+    id: feature
+    attributes:
+      label: 関係する機能
+      description: "要件定義書の機能 ID(例: F-03 レシピ投稿)。分からなければ空欄"

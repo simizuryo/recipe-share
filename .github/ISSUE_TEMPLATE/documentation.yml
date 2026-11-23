@@ -1,0 +1,24 @@
+name: ドキュメント
+description: README・要件定義書などの追加・修正
+labels: ["documentation"]
+body:
+  - type: input
+    id: target
+    attributes:
+      label: 対象のファイル
+      placeholder: README.md / docs/requirements/03-data-model.md
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景・目的
+      description: 何が足りない・古い・分かりにくいか
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 完了条件
+    validations:
+      required: true

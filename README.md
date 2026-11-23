@@ -3,6 +3,7 @@
 料理のレシピを投稿・検索・保存できるレシピ共有アプリ(スクール課題)。
 
 - 要件定義書: [docs/requirements.md](docs/requirements.md)
+- 構成図・ER 図: [docs/architecture.md](docs/architecture.md)
 - 技術: Next.js 16(App Router、TypeScript)/ Prisma 7 + PostgreSQL 16 / Better Auth / 写真は S3 互換ストレージ(詳しくは [技術スタック](docs/requirements/05-tech-stack.md))
 
 ## セットアップ
@@ -137,7 +138,7 @@ GitHub のリポジトリを読み込み(Framework: Next.js、設定は既定の
 | `prisma/` | スキーマとマイグレーション |
 | `tests/` | テスト(`unit/` 単体、`integration/` 統合、`e2e/` E2E、`support/` テスト用の共通処理) |
 | `instrumentation.ts` | 想定外のエラーをログに残す(Next.js の `onRequestError`) |
-| `docs/` | 要件定義書 |
+| `docs/` | 要件定義書、構成図・ER 図 |
 
 ## 開発ルール
 
