@@ -12,8 +12,9 @@ flowchart LR
     B[ブラウザ] -- "画面表示 / Server Actions<br/>セッション Cookie" --> N[Next.js<br/>App Router]
     N -- Prisma --> D[(PostgreSQL 16)]
     N -- "S3 API" --> O[(画像ストレージ<br/>ローカル: RustFS / 本番: S3 互換)]
-    B -- "画像の表示<br/>(署名付きURL)" --> O
 ```
+
+- 写真は非公開のバケットに置き、ブラウザには `/api/images/` から Next.js 経由で配信する(署名付き URL は使わない)。本番の構成は [構成図・ER 図](../architecture.md) を参照。
 
 - **画面**: App Router を使う。一覧・詳細などの表示は Server Components でサーバー側でデータを取得して描画する。並び替え・お気に入りボタンなど操作が必要な部分だけ Client Components にする。
 - **更新処理**: 投稿・編集・削除・お気に入り・コメントは Server Actions で行う。入力は Zod でサーバー側でも検証する。

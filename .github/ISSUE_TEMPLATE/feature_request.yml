@@ -1,0 +1,39 @@
+name: 機能追加・改善
+description: 新しい機能や既存の機能の改善を提案する
+labels: ["enhancement"]
+body:
+  - type: input
+    id: feature
+    attributes:
+      label: 機能 ID
+      description: "要件定義書の機能 ID(例: F-10 人気順の並び替え)。新しい機能なら空欄"
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景・目的
+      description: なぜ必要か、誰が困っているか
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: やること
+      description: 画面・処理・データモデルの変更点
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 完了条件
+      placeholder: |
+        - [ ] 一覧で「人気順」を選ぶとお気に入り数の多い順に並ぶ
+        - [ ] 統合テストを追加する
+    validations:
+      required: true
+  - type: checkboxes
+    id: docs
+    attributes:
+      label: ドキュメント
+      options:
+        - label: 要件定義書(docs/requirements/)の更新が必要
+        - label: 変更管理(08-change-management.md)への記録が必要
